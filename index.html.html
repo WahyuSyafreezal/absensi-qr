@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Sistem Absensi Digital</title>
+  
+  <!-- jsQR Library (Pemindai QR Code Realtime) -->
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+  
+  <!-- Font Google Plus Jakarta Sans -->
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --primary-glow: rgba(99, 102, 241, 0.4);
+      --bg: #0b0f19;
+      --card-bg: #111827;
+      --border: rgba(255, 255, 255, 0.1);
+      --text-main: #f9fafb;
+      --text-muted: #9ca3af;
+      --success: #10b981;
+      --error: #ef4444;
+      --warning: #f59e0b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.1) 0px, transparent 50%);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 16px;
+    }
+
+    .app-card {
+      width: 100%;
+      max-width: 420px;
+      background: var(--card-bg);
+      border-radius: 24px;
+      border: 1px solid var(--border);
+      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.7);
+      overflow: hidden;
+    }
+
+    .header {
+      padding: 24px 20px 16px;
+      text-align: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 12px;
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      color: #818cf8;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .header h1 {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: #ffffff;
+    }
+
+    .header p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .scanner-container {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .video-wrapper {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      background: #000000;
+      border-radius: 20px;
+      overflow: hidden;
+      border: 2px solid var(--border);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* Element Video Live Stream Kamera */
+    #webcam {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* Laser Line Animation */
+    .laser-line {
+      display: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, #6366f1, transparent);
+      box-shadow: 0 0 15px #6366f1;
+      animation: scan 2s infinite ease-in-out;
+      z-index: 5;
+    }
+
+    @keyframes scan {
+      0% { top: 5%; }
+      50% { top: 90%; }
+      100% { top: 5%; }
+    }
+
+    /* Overlay Start Kamera */
+    .start-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(17, 24, 39, 0.92);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+      text-align: center;
+      z-index: 10;
+    }
+
+    .start-overlay-icon {
+      font-size: 2.5rem;
+      margin-bottom: 12px;
+    }
+
+    .start-overlay p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 18px;
+      line-height: 1.4;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #ffffff;
+      border: none;
+      padding: 14px 28px;
+      border-radius: 14px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 8px 20px var(--primary-glow);
+    }
+
+    .btn-primary:active {
+      transform: scale(0.96);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-main);
+      border: 1px solid var(--border);
+      padding: 10px 18px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 0.8rem;
+      cursor: pointer;
+      margin-top: 14px;
+      transition: all 0.2s;
+    }
+
+    .status-section {
+      padding: 0 20px 24px;
+    }
+
+    .status-card {
+      padding: 16px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border);
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+
+    .status-title {
+      font-size: 0.7rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 4px;
+      color: var(--text-muted);
+    }
+
+    .status-desc {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .status-card.idle { border-color: var(--border); }
+    .status-card.loading {
+      background: rgba(245, 158, 11, 0.1);
+      border-color: rgba(245, 158, 11, 0.4);
+    }
+    .status-card.loading .status-title { color: var(--warning); }
+    
+    .status-card.success {
+      background: rgba(16, 185, 129, 0.15);
+      border-color: rgba(16, 185, 129, 0.4);
+    }
+    .status-card.success .status-title { color: var(--success); }
+    .status-card.success .status-desc { color: #6ee7b7; }
+
+    .status-card.error {
+      background: rgba(239, 68, 68, 0.15);
+      border-color: rgba(239, 68, 68, 0.4);
+    }
+    .status-card.error .status-title { color: var(--error); }
+    .status-card.error .status-desc { color: #fca5a5; }
+  </style>
+</head>
+<body>
+
+<div class="app-card">
+  <div class="header">
+    <div class="badge">● Live Scanner</div>
+    <h1>Absensi QR Code</h1>
+    <p>Arahkan Kartu ID Siswa ke kamera</p>
+  </div>
+
+  <div class="scanner-container">
+    <div class="video-wrapper">
+      <div id="laser" class="laser-line"></div>
+      <!-- Video Element Kamera -->
+      <video id="webcam" autoplay playsinline muted></video>
+      
+      <!-- Overlay Tombol Start -->
+      <div id="startOverlay" class="start-overlay">
+        <div class="start-overlay-icon">📷</div>
+        <p>Klik tombol untuk menghubungkan kamera perangkat Anda.</p>
+        <button class="btn-primary" onclick="startCamera()">
+          Buka Kamera
+        </button>
+      </div>
+    </div>
+
+    <button id="btnSwitch" class="btn-secondary" style="display: none;" onclick="switchCamera()">
+      🔄 Ganti Kamera
+    </button>
+  </div>
+
+  <div class="status-section">
+    <div id="statusCard" class="status-card idle">
+      <div id="statusTitle" class="status-title">Status Scanner</div>
+      <div id="statusDesc" class="status-desc">Siap Mengaktifkan Kamera</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyDRJiWckCrqBKfWk9dtObFilldEnJ_bsHWP3SkVtsKp-52_CkWxlHzdZnFr3Mhe9JNVQ/exec";
+
+  const video = document.getElementById('webcam');
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  
+  let currentStream = null;
+  let facingMode = "environment";
+  let isScanning = false;
+  let isProcessing = false;
+  let lastScannedCode = "";
+
+  function setStatus(title, desc, type) {
+    const card = document.getElementById('statusCard');
+    document.getElementById('statusTitle').innerText = title;
+    document.getElementById('statusDesc').innerText = desc;
+    card.className = 'status-card ' + type;
+  }
+
+  async function startCamera() {
+    setStatus('MEMUAT', 'Mengakses kamera...', 'loading');
+    
+    if (currentStream) {
+      currentStream.getTracks().forEach(track => track.stop());
+    }
+
+    try {
+      const constraints = {
+        video: {
+          facingMode: facingMode,
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
+      };
+
+      currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+      video.srcObject = currentStream;
+      await video.play();
+
+      document.getElementById('startOverlay').style.display = 'none';
+      document.getElementById('laser').style.display = 'block';
+      document.getElementById('btnSwitch').style.display = 'inline-block';
+      
+      isScanning = true;
+      setStatus('READY', 'Arahkan QR Code ke kamera', 'idle');
+      requestAnimationFrame(tick);
+    } catch (err) {
+      console.error(err);
+      
+      if (facingMode === "environment") {
+        facingMode = "user";
+        try {
+          currentStream = await navigator.mediaDevices.getUserMedia({ video: true });
+          video.srcObject = currentStream;
+          await video.play();
+
+          document.getElementById('startOverlay').style.display = 'none';
+          document.getElementById('laser').style.display = 'block';
+          isScanning = true;
+          setStatus('READY', 'Arahkan QR Code ke kamera', 'idle');
+          requestAnimationFrame(tick);
+          return;
+        } catch (e2) {
+          handleCameraError(e2);
+          return;
+        }
+      }
+      handleCameraError(err);
+    }
+  }
+
+  function handleCameraError(err) {
+    document.getElementById('startOverlay').style.display = 'flex';
+    document.getElementById('laser').style.display = 'none';
+    
+    if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+      setStatus('IZIN DITOLAK', 'Akses kamera ditolak oleh browser.', 'error');
+    } else {
+      setStatus('ERROR KAMERA', 'Gagal membuka kamera: ' + err.message, 'error');
+    }
+  }
+
+  function switchCamera() {
+    facingMode = facingMode === "environment" ? "user" : "environment";
+    startCamera();
+  }
+
+  function tick() {
+    if (!isScanning) return;
+
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+      canvas.height = video.videoHeight;
+      canvas.width = video.videoWidth;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height, {
+        inversionAttempts: "dontInvert",
+      });
+
+      if (code && code.data) {
+        onQrDetected(code.data);
+        return;
+      }
+    }
+    
+    if (isScanning) {
+      requestAnimationFrame(tick);
+    }
+  }
+
+  // PENGIRIMAN DATA MENGGUNAKAN JSONP (100% BEBAS CORS)
+  function onQrDetected(qrData) {
+    if (isProcessing || qrData === lastScannedCode) {
+      if (isScanning) requestAnimationFrame(tick);
+      return;
+    }
+
+    isProcessing = true;
+    lastScannedCode = qrData;
+
+    setStatus('MEMPROSES', `QR Terdeteksi: ${qrData}. Memeriksa server...`, 'loading');
+
+    // Callback global penampung balasan dari Apps Script
+    window.handleAbsensiResponse = function(response) {
+      if (response.success) {
+        setStatus('BERHASIL', response.message, 'success');
+      } else {
+        setStatus('DITOLAK', response.message, 'error');
+      }
+
+      if (scriptTag && scriptTag.parentNode) {
+        scriptTag.parentNode.removeChild(scriptTag);
+      }
+
+      setTimeout(() => {
+        isProcessing = false;
+        lastScannedCode = "";
+        setStatus('READY', 'Arahkan QR Code ke kamera', 'idle');
+        if (isScanning) requestAnimationFrame(tick);
+      }, 3000);
+    };
+
+    // Injeksi tag <script> dinamis (JSONP)
+    const scriptTag = document.createElement('script');
+    const timestamp = new Date().getTime();
+    scriptTag.src = `${GAS_WEB_APP_URL}?idSiswa=${encodeURIComponent(qrData)}&callback=handleAbsensiResponse&_=${timestamp}`;
+    
+    scriptTag.onerror = function() {
+      setStatus('SERVER ERROR', 'Gagal terhubung ke Google Apps Script.', 'error');
+      if (scriptTag && scriptTag.parentNode) {
+        scriptTag.parentNode.removeChild(scriptTag);
+      }
+      setTimeout(() => {
+        isProcessing = false;
+        lastScannedCode = "";
+        setStatus('READY', 'Arahkan QR Code ke kamera', 'idle');
+        if (isScanning) requestAnimationFrame(tick);
+      }, 3000);
+    };
+
+    document.body.appendChild(scriptTag);
+  }
+</script>
+
+</body>
+</html>
