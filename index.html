@@ -395,35 +395,40 @@
 
   // PENGIRIMAN DATA MENGGUNAKAN JSONP (100% BEBAS CORS)
   function onQrDetected(qrData) {
-    if (isProcessing || qrData === lastScannedCode) {
-      if (isScanning) requestAnimationFrame(tick);
-      return;
-    }
+  if (isProcessing || qrData === lastScannedCode) {
+    if (isScanning) requestAnimationFrame(tick);
+    return;
+  }
 
-    isProcessing = true;
-    lastScannedCode = qrData;
+  isProcessing = true;
+  lastScannedCode = qrData;
 
-    setStatus('MEMPROSES', `QR Terdeteksi: ${qrData}. Memeriksa server...`, 'loading');
+  setStatus('MEMPROSES', `QR Terdeteksi: ${qrData}. Memeriksa server...`, 'loading');
 
-    // Callback global penampung balasan dari Apps Script
-    window.handleAbsensiResponse = function(response) {
-      if (response.success) {
-        setStatus('BERHASIL', response.message, 'success');
+  const targetUrl = `${GAS_WEB_APP_URL}?idSiswa=${encodeURIComponent(qrData)}`;
+
+  fetch(targetUrl)
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        setStatus('BERHASIL', data.message, 'success');
       } else {
-        setStatus('DITOLAK', response.message, 'error');
+        setStatus('DITOLAK', data.message, 'error');
       }
-
-      if (scriptTag && scriptTag.parentNode) {
-        scriptTag.parentNode.removeChild(scriptTag);
-      }
-
+    })
+    .catch(err => {
+      console.error(err);
+      setStatus('SERVER ERROR', 'Gagal terhubung ke Google Apps Script.', 'error');
+    })
+    .finally(() => {
       setTimeout(() => {
         isProcessing = false;
         lastScannedCode = "";
         setStatus('READY', 'Arahkan QR Code ke kamera', 'idle');
         if (isScanning) requestAnimationFrame(tick);
       }, 3000);
-    };
+    });
+}
 
     // Injeksi tag <script> dinamis (JSONP)
     const scriptTag = document.createElement('script');
