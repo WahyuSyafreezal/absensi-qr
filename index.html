@@ -185,13 +185,12 @@
   }
 
   function onQrDetected(qrData) {
-    if (isProcessing || qrData === lastScannedCode) {
-      if (isScanning) requestAnimationFrame(tick);
-      return;
-    }
+    if (isProcessing) return;
 
     isProcessing = true;
+    isScanning = false;
     lastScannedCode = qrData;
+
     setStatus('MEMPROSES', `QR Terdeteksi: ${qrData}...`, 'loading');
 
     window.handleAbsensiResponse = function(response) {
@@ -230,8 +229,9 @@
         isProcessing = false;
         lastScannedCode = "";
         setStatus('READY', 'Arahkan QR Code ke kamera', 'idle');
-        if (isScanning) requestAnimationFrame(tick);
-      }, 3000);
+        isScanning = true;
+        requestAnimationFrame(tick);
+      }, 3500);
     }
 
     document.body.appendChild(scriptTag);
