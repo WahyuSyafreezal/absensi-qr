@@ -93,10 +93,9 @@
 <script>
   const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyDRJiWckCrqBKfWk9dtObFilldEnJ_bsHWP3SkVtsKp-52_CkWxlHzdZnFr3Mhe9JNVQ/exec";
 
-  const ctx = canvas.getContext('2d', { willReadFrequently: true });
   const video = document.getElementById('webcam');
   const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
   
   let currentStream = null;
   let facingMode = "environment";
