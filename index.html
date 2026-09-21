@@ -11,14 +11,15 @@
   
   <style>
     :root {
-      --primary: #6366f1;
-      --primary-hover: #4f46e5;
-      --primary-glow: rgba(99, 102, 241, 0.4);
-      --bg: #0b0f19;
-      --card-bg: #111827;
-      --border: rgba(255, 255, 255, 0.1);
-      --text-main: #f9fafb;
-      --text-muted: #9ca3af;
+      /* TEMA CERAH NUANSA BIRU */
+      --primary: #2563eb;           /* Biru Utama */
+      --primary-hover: #1d4ed8;     /* Biru Gelap Hover */
+      --primary-glow: rgba(37, 99, 235, 0.25);
+      --bg: #ebf3fe;                /* Background Halaman Biru Muda Segar */
+      --card-bg: #ffffff;           /* Kartu Putih Bersih */
+      --border: #dbeafe;            /* Border Biru Soft */
+      --text-main: #0f172a;         /* Teks Utama Gelap / Kontras */
+      --text-muted: #64748b;        /* Teks Sekunder Slate */
       --success: #10b981;
       --error: #ef4444;
       --warning: #f59e0b;
@@ -27,49 +28,69 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
     body { background-color: var(--bg); color: var(--text-main); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
     
-    /* LEBAR KARTU DINAIKKAN DARI 420px MENJADI 650px */
-    .app-card { width: 100%; max-width: 650px; background: var(--card-bg); border-radius: 28px; border: 1px solid var(--border); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.8); overflow: hidden; }
-    .header { padding: 28px 24px 20px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.05); }
-    .badge { display: inline-flex; align-items: center; padding: 6px 14px; background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.3); color: #818cf8; border-radius: 20px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; margin-bottom: 12px; }
-    .header h1 { font-size: 1.6rem; font-weight: 800; color: #ffffff; }
-    .header p { font-size: 0.95rem; color: var(--text-muted); margin-top: 6px; }
+    .app-card { width: 100%; max-width: 650px; background: var(--card-bg); border-radius: 28px; border: 1px solid var(--border); box-shadow: 0 20px 40px -10px rgba(37, 99, 235, 0.12); overflow: hidden; }
+    
+    /* STYLES HEADER & LOGO */
+    .header { padding: 28px 24px 20px; text-align: center; border-bottom: 1px solid var(--border); background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%); }
+    .header-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+    .header-title-box { flex: 1; text-align: center; }
+    
+    .school-logo { width: 60px; height: 60px; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.08)); }
+    
+    .badge { display: inline-flex; align-items: center; padding: 6px 14px; background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8; border-radius: 20px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; margin-bottom: 8px; }
+    .header h1 { font-size: 1.5rem; font-weight: 800; color: var(--text-main); }
+    .header p { font-size: 0.95rem; color: var(--text-muted); margin-top: 4px; }
     
     .scanner-container { padding: 24px; display: flex; flex-direction: column; align-items: center; }
-    .video-wrapper { position: relative; width: 100%; aspect-ratio: 1/1; background: #000; border-radius: 24px; overflow: hidden; border: 2px solid var(--border); display: flex; justify-content: center; align-items: center; box-shadow: inset 0 0 20px rgba(0,0,0,0.8); }
+    .video-wrapper { position: relative; width: 100%; aspect-ratio: 1/1; background: #0f172a; border-radius: 24px; overflow: hidden; border: 3px solid #bfdbfe; display: flex; justify-content: center; align-items: center; box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.2); }
     #webcam { width: 100%; height: 100%; object-fit: cover; }
-    .laser-line { display: none; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, transparent, #6366f1, transparent); box-shadow: 0 0 20px #6366f1; animation: scan 2s infinite ease-in-out; z-index: 5; }
+    .laser-line { display: none; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, transparent, #3b82f6, transparent); box-shadow: 0 0 20px #3b82f6; animation: scan 2s infinite ease-in-out; z-index: 5; }
     @keyframes scan { 0% { top: 5%; } 50% { top: 90%; } 100% { top: 5%; } }
     
-    .start-overlay { position: absolute; inset: 0; background: rgba(17,24,39,0.92); display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 32px; text-align: center; z-index: 10; }
+    .start-overlay { position: absolute; inset: 0; background: rgba(255, 255, 255, 0.95); display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 32px; text-align: center; z-index: 10; }
     .start-overlay-icon { font-size: 3.2rem; margin-bottom: 16px; }
     .start-overlay p { font-size: 0.95rem; color: var(--text-muted); margin-bottom: 22px; line-height: 1.5; }
     
     .btn-primary { background: var(--primary); color: #fff; border: none; padding: 16px 36px; border-radius: 16px; font-weight: 700; font-size: 1.05rem; cursor: pointer; transition: all 0.2s; box-shadow: 0 8px 24px var(--primary-glow); }
     .btn-primary:hover { background: var(--primary-hover); transform: translateY(-2px); }
-    .btn-secondary { background: rgba(255,255,255,0.06); color: var(--text-main); border: 1px solid var(--border); padding: 12px 22px; border-radius: 14px; font-weight: 600; font-size: 0.9rem; cursor: pointer; margin-top: 18px; transition: all 0.2s; }
-    .btn-secondary:hover { background: rgba(255,255,255,0.12); }
+    .btn-secondary { background: #f1f5f9; color: var(--text-main); border: 1px solid #cbd5e1; padding: 12px 22px; border-radius: 14px; font-weight: 600; font-size: 0.9rem; cursor: pointer; margin-top: 18px; transition: all 0.2s; }
+    .btn-secondary:hover { background: #e2e8f0; }
     
     .status-section { padding: 0 24px 28px; }
-    .status-card { padding: 20px; border-radius: 20px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); text-align: center; transition: all 0.3s ease; }
+    .status-card { padding: 20px; border-radius: 20px; background: #f8fafc; border: 1px solid var(--border); text-align: center; transition: all 0.3s ease; }
     .status-title { font-size: 0.8rem; font-weight: 800; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px; color: var(--text-muted); }
     .status-desc { font-size: 1.1rem; font-weight: 700; color: var(--text-main); }
-    .status-card.idle { border-color: var(--border); }
-    .status-card.loading { background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.4); }
-    .status-card.loading .status-title { color: var(--warning); }
-    .status-card.success { background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.5); }
-    .status-card.success .status-title { color: var(--success); }
-    .status-card.success .status-desc { color: #6ee7b7; }
-    .status-card.error { background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.5); }
-    .status-card.error .status-title { color: var(--error); }
-    .status-card.error .status-desc { color: #fca5a5; }
+    
+    .status-card.idle { border-color: #cbd5e1; }
+    .status-card.loading { background: #fffbeb; border-color: #fde68a; }
+    .status-card.loading .status-title { color: #d97706; }
+    .status-card.loading .status-desc { color: #b45309; }
+    
+    .status-card.success { background: #ecfdf5; border-color: #a7f3d0; }
+    .status-card.success .status-title { color: #059669; }
+    .status-card.success .status-desc { color: #047857; }
+    
+    .status-card.error { background: #fef2f2; border-color: #fecaca; }
+    .status-card.error .status-title { color: #dc2626; }
+    .status-card.error .status-desc { color: #b91c1c; }
   </style>
 </head>
 <body>
 
 <div class="app-card">
   <div class="header">
-    <div class="badge">● Live Scanner</div>
-    <h1>Absensi QR Code</h1>
+    <div class="header-top">
+      <!-- GANTI FILE_ID_1 DENGAN ID GOOGLE DRIVE LOGO KIRI -->
+      <img src="https://lh3.googleusercontent.com/d/FILE_ID_1" alt="Logo Kiri" class="school-logo" onerror="this.src='https://via.placeholder.com/60?text=Logo+1'">
+      
+      <div class="header-title-box">
+        <div class="badge">● Live Scanner</div>
+        <h1>Absensi QR Code</h1>
+      </div>
+      
+      <!-- GANTI FILE_ID_2 DENGAN ID GOOGLE DRIVE LOGO KANAN -->
+      <img src="https://lh3.googleusercontent.com/d/FILE_ID_2" alt="Logo Kanan" class="school-logo" onerror="this.src='https://via.placeholder.com/60?text=Logo+2'">
+    </div>
     <p>Arahkan Kartu ID Siswa ke kamera</p>
   </div>
 
