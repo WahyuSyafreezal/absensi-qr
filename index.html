@@ -12,14 +12,14 @@
   <style>
     :root {
       /* TEMA CERAH NUANSA BIRU */
-      --primary: #2563eb;           /* Biru Utama */
-      --primary-hover: #1d4ed8;     /* Biru Gelap Hover */
+      --primary: #2563eb;           
+      --primary-hover: #1d4ed8;     
       --primary-glow: rgba(37, 99, 235, 0.25);
-      --bg: #ebf3fe;                /* Background Halaman Biru Muda Segar */
-      --card-bg: #ffffff;           /* Kartu Putih Bersih */
-      --border: #dbeafe;            /* Border Biru Soft */
-      --text-main: #0f172a;         /* Teks Utama Gelap / Kontras */
-      --text-muted: #64748b;        /* Teks Sekunder Slate */
+      --bg: #ebf3fe;                
+      --card-bg: #ffffff;           
+      --border: #dbeafe;            
+      --text-main: #0f172a;         
+      --text-muted: #64748b;        
       --success: #10b981;
       --error: #ef4444;
       --warning: #f59e0b;
@@ -30,17 +30,12 @@
     
     .app-card { width: 100%; max-width: 650px; background: var(--card-bg); border-radius: 28px; border: 1px solid var(--border); box-shadow: 0 20px 40px -10px rgba(37, 99, 235, 0.12); overflow: hidden; }
     
-    /* STYLES HEADER & LOGO */
+    /* HEADER & LOGO */
     .header { padding: 28px 24px 20px; text-align: center; border-bottom: 1px solid var(--border); background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%); }
     .header-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
     .header-title-box { flex: 1; text-align: center; }
     
-    .school-logo { 
-      width: 80px; 
-      height: 80px; 
-      object-fit: contain; 
-      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.08)); 
-    }
+    .school-logo { width: 80px; height: 80px; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.08)); }
     
     .badge { display: inline-flex; align-items: center; padding: 6px 14px; background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8; border-radius: 20px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; margin-bottom: 8px; }
     .header h1 { font-size: 1.5rem; font-weight: 800; color: var(--text-main); }
@@ -80,17 +75,10 @@
     .status-card.error .status-desc { color: #b91c1c; }
 
     @media (max-width: 480px) {
-      .school-logo {
-        width: 55px;
-        height: 55px;
-      }
-      .header h1 {
-        font-size: 1.2rem;
-      }
-      .badge {
-        font-size: 0.7rem;
-        padding: 4px 10px;
-      }
+      .school-logo { width: 55px; height: 55px; }
+      .header h1 { font-size: 1.2rem; }
+      .badge { font-size: 0.7rem; padding: 4px 10px; }
+      .header-top { gap: 8px; }
     }
   </style>
 </head>
@@ -99,16 +87,12 @@
 <div class="app-card">
   <div class="header">
     <div class="header-top">
-      <!-- GANTI FILE_ID_1 DENGAN ID GOOGLE DRIVE LOGO KIRI -->
-      <img src="Logo_Jateng.png" alt="Logo Kiri" class="school-logo" onerror="this.src='https://via.placeholder.com/60?text=Logo+1'">
-      
+      <img src="Logo_Jateng.png" alt="Logo Jateng" class="school-logo">
       <div class="header-title-box">
         <div class="badge">● Live Scanner</div>
         <h1>Absensi QR Code</h1>
       </div>
-      
-      <!-- GANTI FILE_ID_2 DENGAN ID GOOGLE DRIVE LOGO KANAN -->
-      <img src="Logo_Smaba.png" alt="Logo Kanan" class="school-logo" onerror="this.src='https://via.placeholder.com/60?text=Logo+2'">
+      <img src="Logo_Smaba.png" alt="Logo Smaba" class="school-logo">
     </div>
     <p>Arahkan Kartu ID Siswa ke kamera</p>
   </div>
@@ -151,6 +135,66 @@
   let isProcessing = false;
   let lastScannedCode = "";
 
+  // WEB AUDIO SYNTHESIZER
+  let audioCtx = null;
+
+  function initAudio() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+  }
+
+  function playSound(type) {
+    if (!audioCtx) return;
+    const now = audioCtx.currentTime;
+
+    if (type === 'success') {
+      // Nada "Ting!" Segar (C5 -> C6 Arpeggio)
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(523.25, now); 
+      osc.frequency.exponentialRampToValueAtTime(1046.50, now + 0.15); 
+      gain.gain.setValueAtTime(0.3, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.3);
+
+    } else if (type === 'warning') {
+      // Nada Bip-Bip Kuning (Telat)
+      [0, 0.15].forEach(delay => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(587.33, now + delay); 
+        gain.gain.setValueAtTime(0.3, now + delay);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + delay + 0.12);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now + delay);
+        osc.stop(now + delay + 0.12);
+      });
+
+    } else if (type === 'error') {
+      // Nada "Tet!" Merah (Sawtooth Bass)
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(140, now);
+      gain.gain.setValueAtTime(0.35, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.4);
+    }
+  }
+
   function setStatus(title, desc, type) {
     const card = document.getElementById('statusCard');
     document.getElementById('statusTitle').innerText = title;
@@ -159,6 +203,7 @@
   }
 
   async function startCamera() {
+    initAudio(); // Aktifkan sistem audio saat klik tombol
     setStatus('MEMUAT', 'Mengakses kamera...', 'loading');
     
     if (currentStream) {
@@ -244,8 +289,16 @@
     window.handleAbsensiResponse = function(response) {
       if (response.success) {
         setStatus('BERHASIL', response.message, 'success');
+        
+        // Putar suara berdasarkan Keterangan (Telat vs Tepat Waktu)
+        if (response.message.includes('Telat')) {
+          playSound('warning');
+        } else {
+          playSound('success');
+        }
       } else {
         setStatus('DITOLAK', response.message, 'error');
+        playSound('error');
       }
       cleanupScript();
       resetScanState();
@@ -262,6 +315,7 @@
     
     scriptTag.onerror = function() {
       setStatus('SERVER ERROR', 'Gagal terhubung ke Google Apps Script.', 'error');
+      playSound('error');
       cleanupScript();
       resetScanState();
     };
