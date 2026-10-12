@@ -5,13 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Sistem Absensi Digital</title>
   
-  <!-- Library jsQR -->
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   
   <style>
     :root {
-      /* TEMA CERAH NUANSA BIRU */
       --primary: #2563eb;           
       --primary-hover: #1d4ed8;     
       --primary-glow: rgba(37, 99, 235, 0.25);
@@ -30,7 +28,6 @@
     
     .app-card { width: 100%; max-width: 650px; background: var(--card-bg); border-radius: 28px; border: 1px solid var(--border); box-shadow: 0 20px 40px -10px rgba(37, 99, 235, 0.12); overflow: hidden; }
     
-    /* HEADER & LOGO */
     .header { padding: 28px 24px 20px; text-align: center; border-bottom: 1px solid var(--border); background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%); }
     .header-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
     .header-title-box { flex: 1; text-align: center; }
@@ -41,6 +38,12 @@
     .header h1 { font-size: 1.5rem; font-weight: 800; color: var(--text-main); }
     .header p { font-size: 0.95rem; color: var(--text-muted); margin-top: 4px; }
     
+    /* DROPDOWN MODE ABSENSI */
+    .mode-container { margin-top: 16px; display: flex; justify-content: center; align-items: center; gap: 8px; }
+    .mode-label { font-size: 0.85rem; font-weight: 700; color: var(--text-muted); }
+    .mode-select { padding: 10px 16px; border-radius: 12px; border: 2px solid #bfdbfe; background: #ffffff; color: var(--primary); font-weight: 700; font-size: 0.95rem; outline: none; cursor: pointer; transition: all 0.2s; }
+    .mode-select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-glow); }
+
     .scanner-container { padding: 24px; display: flex; flex-direction: column; align-items: center; }
     .video-wrapper { position: relative; width: 100%; aspect-ratio: 1/1; background: #0f172a; border-radius: 24px; overflow: hidden; border: 3px solid #bfdbfe; display: flex; justify-content: center; align-items: center; box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.2); }
     #webcam { width: 100%; height: 100%; object-fit: cover; }
@@ -86,258 +89,4 @@
 
 <div class="app-card">
   <div class="header">
-    <div class="header-top">
-      <img src="Logo_Jateng.png" alt="Logo Jateng" class="school-logo">
-      <div class="header-title-box">
-        <div class="badge">● Live Scanner</div>
-        <h1>Absensi QR Code</h1>
-      </div>
-      <img src="Logo_Smaba.png" alt="Logo Smaba" class="school-logo">
-    </div>
-    <p>Arahkan Kartu ID Siswa ke kamera</p>
-  </div>
-
-  <div class="scanner-container">
-    <div class="video-wrapper">
-      <div id="laser" class="laser-line"></div>
-      <video id="webcam" autoplay playsinline muted></video>
-      
-      <div id="startOverlay" class="start-overlay">
-        <div class="start-overlay-icon">📷</div>
-        <p>Klik tombol untuk menghubungkan kamera perangkat Anda.</p>
-        <button class="btn-primary" onclick="startCamera()">Buka Kamera</button>
-      </div>
-    </div>
-
-    <button id="btnSwitch" class="btn-secondary" style="display: none;" onclick="switchCamera()">
-      🔄 Ganti Kamera
-    </button>
-  </div>
-
-  <div class="status-section">
-    <div id="statusCard" class="status-card idle">
-      <div id="statusTitle" class="status-title">Status Scanner</div>
-      <div id="statusDesc" class="status-desc">Siap Mengaktifkan Kamera</div>
-    </div>
-  </div>
-</div>
-
-<script>
-  const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbytVYQ86ZzQM0ulD3PweU2LRw8-CvX3Tb-WPqzEJkFeijsnXta3OgsjvPAsOiAlc-DnKw/exec";
-
-  const video = document.getElementById('webcam');
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d', { willReadFrequently: true });
-  
-  let currentStream = null;
-  let facingMode = "environment";
-  let isScanning = false;
-  let isProcessing = false;
-  let lastScannedCode = "";
-
-  // WEB AUDIO SYNTHESIZER
-  let audioCtx = null;
-
-  function initAudio() {
-    if (!audioCtx) {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    if (audioCtx.state === 'suspended') {
-      audioCtx.resume();
-    }
-  }
-
-  function playSound(type) {
-    if (!audioCtx) return;
-    const now = audioCtx.currentTime;
-
-    if (type === 'success') {
-      // Nada "Ting!" Segar (C5 -> C6 Arpeggio)
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(523.25, now); 
-      osc.frequency.exponentialRampToValueAtTime(1046.50, now + 0.15); 
-      gain.gain.setValueAtTime(0.3, now);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.start(now);
-      osc.stop(now + 0.3);
-
-    } else if (type === 'warning') {
-      // Nada Bip-Bip Kuning (Telat)
-      [0, 0.15].forEach(delay => {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(587.33, now + delay); 
-        gain.gain.setValueAtTime(0.3, now + delay);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + delay + 0.12);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start(now + delay);
-        osc.stop(now + delay + 0.12);
-      });
-
-    } else if (type === 'error') {
-      // Nada "Tet!" Merah (Sawtooth Bass)
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(140, now);
-      gain.gain.setValueAtTime(0.35, now);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.start(now);
-      osc.stop(now + 0.4);
-    }
-  }
-
-  function setStatus(title, desc, type) {
-    const card = document.getElementById('statusCard');
-    document.getElementById('statusTitle').innerText = title;
-    document.getElementById('statusDesc').innerText = desc;
-    card.className = 'status-card ' + type;
-  }
-
-  async function startCamera() {
-    initAudio(); // Aktifkan sistem audio saat klik tombol
-    setStatus('MEMUAT', 'Mengakses kamera...', 'loading');
-    
-    if (currentStream) {
-      currentStream.getTracks().forEach(track => track.stop());
-    }
-
-    try {
-      const constraints = { video: { facingMode: facingMode, width: { ideal: 1280 }, height: { ideal: 720 } } };
-      currentStream = await navigator.mediaDevices.getUserMedia(constraints);
-      video.srcObject = currentStream;
-      await video.play();
-
-      document.getElementById('startOverlay').style.display = 'none';
-      document.getElementById('laser').style.display = 'block';
-      document.getElementById('btnSwitch').style.display = 'inline-block';
-      
-      isScanning = true;
-      setStatus('READY', 'Arahkan QR Code ke kamera', 'idle');
-      requestAnimationFrame(tick);
-    } catch (err) {
-      console.error(err);
-      if (facingMode === "environment") {
-        facingMode = "user";
-        try {
-          currentStream = await navigator.mediaDevices.getUserMedia({ video: true });
-          video.srcObject = currentStream;
-          await video.play();
-
-          document.getElementById('startOverlay').style.display = 'none';
-          document.getElementById('laser').style.display = 'block';
-          isScanning = true;
-          setStatus('READY', 'Arahkan QR Code ke kamera', 'idle');
-          requestAnimationFrame(tick);
-          return;
-        } catch (e2) {
-          handleCameraError(e2);
-          return;
-        }
-      }
-      handleCameraError(err);
-    }
-  }
-
-  function handleCameraError(err) {
-    document.getElementById('startOverlay').style.display = 'flex';
-    document.getElementById('laser').style.display = 'none';
-    setStatus('ERROR KAMERA', 'Gagal membuka kamera: ' + err.message, 'error');
-  }
-
-  function switchCamera() {
-    facingMode = facingMode === "environment" ? "user" : "environment";
-    startCamera();
-  }
-
-  function tick() {
-    if (!isScanning) return;
-
-    if (video.readyState === video.HAVE_ENOUGH_DATA) {
-      canvas.height = video.videoHeight;
-      canvas.width = video.videoWidth;
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
-
-      if (code && code.data) {
-        onQrDetected(code.data);
-        return;
-      }
-    }
-    if (isScanning) requestAnimationFrame(tick);
-  }
-
-  function onQrDetected(qrData) {
-    if (isProcessing) return;
-
-    isProcessing = true;
-    isScanning = false;
-    lastScannedCode = qrData;
-
-    setStatus('MEMPROSES', `QR Terdeteksi: ${qrData}...`, 'loading');
-
-    window.handleAbsensiResponse = function(response) {
-      if (response.success) {
-        setStatus('BERHASIL', response.message, 'success');
-        
-        // Putar suara berdasarkan Keterangan (Telat vs Tepat Waktu)
-        if (response.message.includes('Telat')) {
-          playSound('warning');
-        } else {
-          playSound('success');
-        }
-      } else {
-        setStatus('DITOLAK', response.message, 'error');
-        playSound('error');
-      }
-      cleanupScript();
-      resetScanState();
-    };
-
-    const scriptId = 'jsonp-absensi-script';
-    let scriptTag = document.getElementById(scriptId);
-    if (scriptTag) scriptTag.remove();
-
-    scriptTag = document.createElement('script');
-    scriptTag.id = scriptId;
-    const timestamp = new Date().getTime();
-    scriptTag.src = `${GAS_WEB_APP_URL}?idSiswa=${encodeURIComponent(qrData)}&callback=handleAbsensiResponse&_=${timestamp}`;
-    
-    scriptTag.onerror = function() {
-      setStatus('SERVER ERROR', 'Gagal terhubung ke Google Apps Script.', 'error');
-      playSound('error');
-      cleanupScript();
-      resetScanState();
-    };
-
-    function cleanupScript() {
-      const tag = document.getElementById(scriptId);
-      if (tag) tag.remove();
-      delete window.handleAbsensiResponse;
-    }
-
-    function resetScanState() {
-      setTimeout(() => {
-        isProcessing = false;
-        lastScannedCode = "";
-        setStatus('READY', 'Arahkan QR Code ke kamera', 'idle');
-        isScanning = true;
-        requestAnimationFrame(tick);
-      }, 3500);
-    }
-
-    document.body.appendChild(scriptTag);
-  }
-</script>
-</body>
-</html>
+    <div class="header-
