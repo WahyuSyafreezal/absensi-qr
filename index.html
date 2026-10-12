@@ -197,4 +197,154 @@
       osc.connect(gain);
       gain.connect(audioCtx.destination);
       osc.start(now);
-      osc.stop(now + 0
+      osc.stop(now + 0.4);
+    }
+  }
+
+  function setStatus(title, desc, type) {
+    const card = document.getElementById('statusCard');
+    document.getElementById('statusTitle').innerText = title;
+    document.getElementById('statusDesc').innerText = desc;
+    card.className = 'status-card ' + type;
+  }
+
+  async function startCamera() {
+    initAudio();
+    setStatus('MEMUAT', 'Mengakses kamera...', 'loading');
+    
+    if (currentStream) {
+      currentStream.getTracks().forEach(track => track.stop());
+    }
+
+    try {
+      const constraints = { video: { facingMode: facingMode, width: { ideal: 1280 }, height: { ideal: 720 } } };
+      currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+      video.srcObject = currentStream;
+      await video.play();
+
+      document.getElementById('startOverlay').style.display = 'none';
+      document.getElementById('laser').style.display = 'block';
+      document.getElementById('btnSwitch').style.display = 'inline-block';
+      
+      isScanning = true;
+      setStatus('READY', 'Arahkan QR Code ke kamera', 'idle');
+      requestAnimationFrame(tick);
+    } catch (err) {
+      console.error(err);
+      if (facingMode === "environment") {
+        facingMode = "user";
+        try {
+          currentStream = await navigator.mediaDevices.getUserMedia({ video: true });
+          video.srcObject = currentStream;
+          await video.play();
+
+          document.getElementById('startOverlay').style.display = 'none';
+          document.getElementById('laser').style.display = 'block';
+          isScanning = true;
+          setStatus('READY', 'Arahkan QR Code ke kamera', 'idle');
+          requestAnimationFrame(tick);
+          return;
+        } catch (e2) {
+          handleCameraError(e2);
+          return;
+        }
+      }
+      handleCameraError(err);
+    }
+  }
+
+  function handleCameraError(err) {
+    document.getElementById('startOverlay').style.display = 'flex';
+    document.getElementById('laser').style.display = 'none';
+    setStatus('ERROR KAMERA', 'Gagal membuka kamera: ' + err.message, 'error');
+  }
+
+  function switchCamera() {
+    facingMode = facingMode === "environment" ? "user" : "environment";
+    startCamera();
+  }
+
+  function tick() {
+    if (!isScanning) return;
+
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+      canvas.height = video.videoHeight;
+      canvas.width = video.videoWidth;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
+
+      if (code && code.data) {
+        onQrDetected(code.data);
+        return;
+      }
+    }
+    if (isScanning) requestAnimationFrame(tick);
+  }
+
+  function onQrDetected(qrData) {
+    if (isProcessing) return;
+
+    isProcessing = true;
+    isScanning = false;
+    lastScannedCode = qrData;
+
+    const tipeAbsen = document.getElementById('tipeAbsen').value;
+
+    setStatus('MEMPROSES', `QR Terdeteksi: ${qrData}...`, 'loading');
+
+    window.handleAbsensiResponse = function(response) {
+      if (response.success) {
+        setStatus('BERHASIL', response.message, 'success');
+        if (response.message.includes('Telat')) {
+          playSound('warning');
+        } else {
+          playSound('success');
+        }
+      } else {
+        setStatus('DITOLAK', response.message, 'error');
+        playSound('error');
+      }
+      cleanupScript();
+      resetScanState();
+    };
+
+    const scriptId = 'jsonp-absensi-script';
+    let scriptTag = document.getElementById(scriptId);
+    if (scriptTag) scriptTag.remove();
+
+    scriptTag = document.createElement('script');
+    scriptTag.id = scriptId;
+    const timestamp = new Date().getTime();
+    
+    scriptTag.src = `${GAS_WEB_APP_URL}?idSiswa=${encodeURIComponent(qrData)}&tipeAbsen=${encodeURIComponent(tipeAbsen)}&callback=handleAbsensiResponse&_=${timestamp}`;
+    
+    scriptTag.onerror = function() {
+      setStatus('SERVER ERROR', 'Gagal terhubung ke Google Apps Script.', 'error');
+      playSound('error');
+      cleanupScript();
+      resetScanState();
+    };
+
+    function cleanupScript() {
+      const tag = document.getElementById(scriptId);
+      if (tag) tag.remove();
+      delete window.handleAbsensiResponse;
+    }
+
+    function resetScanState() {
+      setTimeout(() => {
+        isProcessing = false;
+        lastScannedCode = "";
+        setStatus('READY', 'Arahkan QR Code ke kamera', 'idle');
+        isScanning = true;
+        requestAnimationFrame(tick);
+      }, 3500);
+    }
+
+    document.body.appendChild(scriptTag);
+  }
+</script>
+</body>
+</html>
