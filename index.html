@@ -294,22 +294,6 @@
 
     setStatus('MEMPROSES', `QR Terdeteksi: ${qrData}...`, 'loading');
 
-    window.handleAbsensiResponse = function(response) {
-      if (response.success) {
-        setStatus('BERHASIL', response.message, 'success');
-        if (response.message.includes('Telat')) {
-          playSound('warning');
-        } else {
-          playSound('success');
-        }
-      } else {
-        setStatus('DITOLAK', response.message, 'error');
-        playSound('error');
-      }
-      cleanupScript();
-      resetScanState();
-    };
-
     const scriptId = 'jsonp-absensi-script';
     let scriptTag = document.getElementById(scriptId);
     if (scriptTag) scriptTag.remove();
