@@ -340,7 +340,7 @@
         setStatus('READY', 'Arahkan QR Code ke kamera', 'idle');
         isScanning = true;
         requestAnimationFrame(tick);
-      }, 3500);
+      }, 1200); // Dipercepat dari 3500ms menjadi 1200ms
     }
 
     document.body.appendChild(scriptTag);
