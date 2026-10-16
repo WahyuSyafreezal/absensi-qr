@@ -173,20 +173,6 @@
       osc.start(now);
       osc.stop(now + 0.3);
 
-    } else if (type === 'warning') {
-      [0, 0.15].forEach(delay => {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(587.33, now + delay); 
-        gain.gain.setValueAtTime(0.3, now + delay);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + delay + 0.12);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start(now + delay);
-        osc.stop(now + delay + 0.12);
-      });
-
     } else if (type === 'error') {
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
@@ -207,6 +193,18 @@
     document.getElementById('statusDesc').innerText = desc;
     card.className = 'status-card ' + type;
   }
+
+  // CALLBACK GLOBAL PERMANEN (Mencegah error 'handleAbsensiResponse is not defined')
+  window.handleAbsensiResponse = function(response) {
+    if (response.success) {
+      setStatus('BERHASIL', response.message, 'success');
+      playSound('success');
+    } else {
+      setStatus('DITOLAK', response.message, 'error');
+      playSound('error');
+    }
+    resetScanState();
+  };
 
   async function startCamera() {
     initAudio();
@@ -291,7 +289,6 @@
     lastScannedCode = qrData;
 
     const tipeAbsen = document.getElementById('tipeAbsen').value;
-
     setStatus('MEMPROSES', `QR Terdeteksi: ${qrData}...`, 'loading');
 
     const scriptId = 'jsonp-absensi-script';
@@ -307,27 +304,23 @@
     scriptTag.onerror = function() {
       setStatus('SERVER ERROR', 'Gagal terhubung ke Google Apps Script.', 'error');
       playSound('error');
-      cleanupScript();
       resetScanState();
     };
 
-    function cleanupScript() {
-      const tag = document.getElementById(scriptId);
-      if (tag) tag.remove();
-      delete window.handleAbsensiResponse;
-    }
-
-    function resetScanState() {
-      setTimeout(() => {
-        isProcessing = false;
-        lastScannedCode = "";
-        setStatus('READY', 'Arahkan QR Code ke kamera', 'idle');
-        isScanning = true;
-        requestAnimationFrame(tick);
-      }, 1200); // Dipercepat dari 3500ms menjadi 1200ms
-    }
-
     document.body.appendChild(scriptTag);
+  }
+
+  function resetScanState() {
+    const scriptTag = document.getElementById('jsonp-absensi-script');
+    if (scriptTag) scriptTag.remove();
+
+    setTimeout(() => {
+      isProcessing = false;
+      lastScannedCode = "";
+      setStatus('READY', 'Arahkan QR Code ke kamera', 'idle');
+      isScanning = true;
+      requestAnimationFrame(tick);
+    }, 1200);
   }
 </script>
 </body>
